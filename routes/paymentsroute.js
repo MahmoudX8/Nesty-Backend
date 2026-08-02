@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const verifyjwt = require('../middleware/verifyjwt');
+const paymentscontroller = require('../controllers/paymentscontroller');
+router.use(verifyjwt);
+router.route("/create-order").post(paymentscontroller.createOrder);
+router.route("/").get(paymentscontroller.sendAdminOrders);
+router.route("/:id").get(paymentscontroller.getEachDetailedOrder);
+router.route("/confirm-order").post(paymentscontroller.confirmOrder);
+module.exports = router;
