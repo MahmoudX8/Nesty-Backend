@@ -80,9 +80,9 @@ const verifyOtpSignup = async(req,res)=>{
             {expiresIn: "7d"}
         );
         res.cookie("jwt",refreshToken,{
-            secure: process.env.NODE_ENV == "production",
+            secure: true,
             httpOnly: true,
-            sameSite: 'lax',
+            sameSite: 'none',
             maxAge: 7*24*3600*1000
         });
         res.json({
@@ -122,9 +122,9 @@ const login = async (req,res)=>{
             {expiresIn: "7d"}
         );
         res.cookie("jwt",refreshToken,{
-            secure: process.env.NODE_ENV == "production",
+            secure: true,
             httpOnly: true,
-            sameSite: 'lax',
+            sameSite: 'none',
             maxAge: 7*24*3600*1000
         });
         res.json({
