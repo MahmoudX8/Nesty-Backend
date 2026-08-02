@@ -72,7 +72,7 @@ const addproduct = async (req,res) =>{
         }
         const adminId = req.user.id;
         console.log(adminId);
-        const imagepath = imageFile.path.replace(/\\/g, '/');
+        const imagepath = imageFile.path;
         const [rows] = await pool.query('INSERT INTO products(admin_id , title, image, description , price , quantity) VALUES(?,?,?,?,?,?)', [adminId , title , imagepath , description , price , quantity]);
         if(rows.length == 0 || !rows) return res.status(404).json({success: false, message:'there is not any products found'});
         res.json({success: true , imagepath ,message: "product added successfully"})
