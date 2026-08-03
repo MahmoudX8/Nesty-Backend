@@ -1,8 +1,6 @@
 const pool  = require("../config/dbconnect");
-const nodeMailer = require('nodemailer');
 const bcrypt = require('bcrypt');
-const {Resend} = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const axios = require('axios');
 
 const profilecontroller = async(req,res)=>{
     try {
@@ -50,16 +48,32 @@ const updateProfile = async(req,res)=>{
         }
         const otp = createOtp();
         pendingData.set(email,{first_name,last_name,email,password: finalPass,otp:otp,expires_at:Date.now()+ttl});
-        await resend.emails.send({
-            from: "onboarding@resend.dev",
-            to: email,
-            subject: 'OTP Verification',
-            html:`
+        await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+        sender: {
+            name: "Nesty Website",
+            email: process.env.GMAIL_USER,
+        },
+        to: [
+            {
+                email: email,
+            },
+        ],
+        subject: "OTP Verification",
+        htmlContent: `
             <h2>OTP Verification</h2>
             <h1>${otp}</h1>
             <p>Valid for just 2 minutes</p>
-            `
-        });
+        `,
+    },
+    {
+        headers: {
+            "api-key": process.env.BREVO_API_KEY,
+            "Content-Type": "application/json",
+        },
+    }
+);
         res.json({success:true,email,message:'waiting for verification'});
     } catch (error) {
         console.log(error);
