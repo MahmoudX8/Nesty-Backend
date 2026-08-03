@@ -1,6 +1,9 @@
 const pool  = require("../config/dbconnect");
 const nodeMailer = require('nodemailer');
 const bcrypt = require('bcrypt');
+const {Resend} = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const profilecontroller = async(req,res)=>{
     try {
         if(!req.user || !req.user.id) return res.status(401).json({success: false , message: `user not authenticated`});
@@ -20,14 +23,6 @@ const profilecontroller = async(req,res)=>{
         console.log(`fetch profile error: ${error}`);
     }
 }
-const transporter = nodeMailer.createTransport({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    auth:{
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-    }
-});
 const pendingData = new Map();
 const ttl = 1000*60*2;
 const createOtp = ()=>{
@@ -55,11 +50,8 @@ const updateProfile = async(req,res)=>{
         }
         const otp = createOtp();
         pendingData.set(email,{first_name,last_name,email,password: finalPass,otp:otp,expires_at:Date.now()+ttl});
-        await transporter.sendMail({
-            from:{
-                name: "Nasty Website",
-                address: process.env.GMAIL_USER
-            },
+        await resend.emails.send({
+            from: process.env.GMAIL_USER,
             to: email,
             subject: 'OTP Verification',
             html:`
