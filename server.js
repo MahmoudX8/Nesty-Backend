@@ -8,7 +8,9 @@ const pool = require("./config/dbconnect");
 const PORT = 8000 || process.env.PORT;
 const path = require('path');
 const jwt = require("jsonwebtoken");
-const paymentscontroller = require('./controllers/paymentscontroller')
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+
 //app configurations cors - cookies - json
 app.use(cors(corsoptions));
 app.use(cookieParser());
