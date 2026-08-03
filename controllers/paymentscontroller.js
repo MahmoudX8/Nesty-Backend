@@ -15,7 +15,7 @@ const createOrder = async(req,res)=>{
         if(admins.length == 0 , !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
         await resend.emails.send({
-            from: process.env.GMAIL_USER,
+            from: "onboarding@resend.dev",
             to: adminEmails,
             subject:'New Order',
             html:`
