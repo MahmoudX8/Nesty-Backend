@@ -1,14 +1,8 @@
 const pool  = require("../config/dbconnect");
 const nodeMailer = require('nodemailer');
+const {Resend} = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = nodeMailer.createTransport({
-    service:'gmail',
-    host:'smtp.gmail.com',
-    auth:{
-        user:process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-    }
-});
 const createOrder = async(req,res)=>{
     try {
         const {cartproducts, cost} = req.body;
@@ -20,20 +14,17 @@ const createOrder = async(req,res)=>{
         const [admins] = await pool.query(`SELECT * FROM users WHERE member_role = ?`,["admin"]);
         if(admins.length == 0 , !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
-        await transporter.sendMail({
-            from:{
-                name:'Nesty Website',
-                address: process.env.GMAIL_USER
-            },
+        await resend.emails.send({
+            from: process.env.GMAIL_USER,
             to: adminEmails,
             subject:'New Order',
             html:`
             <h1>You Got New Order</h1>
             <h3>Order id: ${orderId}</h3>
             <h3>Total cost: ${cost}$</h3>
-            <p><a href='http://localhost:3000/order/${orderId}'>click for more details</a></p>
+            <p><a href='https://nesty-nwzp.vercel.app/order/${orderId}'>click for more details</a></p>
             `
-        })
+        });
         res.json({success:true, message: `order has been sent successfully` , orderId: orderId});
     } catch (error) {
         console.log(error);
