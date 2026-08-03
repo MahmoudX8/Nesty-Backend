@@ -34,7 +34,7 @@ const signup = async (req,res)=>{
         const otp = createOtp();
         pendingEmails.set(cleanEmail,{fname: first_name, lname: last_name, email:cleanEmail, pass: hashedPass , ip:ip, otp:otp , expires_at: Date.now()+otp_ttl});
         await resend.emails.send({
-            from: process.env.GMAIL_USER,
+            from: "onboarding@resend.dev",
             to: cleanEmail,
             subject: "OTP Verification",
             html: `
@@ -170,7 +170,7 @@ const forgetPass = async(req,res)=>{
         const otp = createOtp();
         pendingEmails.set(storedEmail,{id: data.id,email: storedEmail, member_role: data.member_role, otp: otp , expires_at:Date.now()+otp_ttl});
         await resend.emails.send({
-            from: process.env.GMAIL_USER,
+            from: "onboarding@resend.dev",
             to: storedEmail,
             subject:'OTP Verification',
             html:`
