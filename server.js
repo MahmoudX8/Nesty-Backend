@@ -8,22 +8,7 @@ const pool = require("./config/dbconnect");
 const PORT = 8000 || process.env.PORT;
 const path = require('path');
 const jwt = require("jsonwebtoken");
-// const dns = require("dns");
-// dns.setDefaultResultOrder("ipv4first");
-const dns = require("dns");
-const {promisify}  = require("util");
 
-const lookup = promisify(dns.lookup);
-
-app.get("/dns-test", async (req, res) => {
-    try {
-        const result = await lookup("smtp.gmail.com", { all: true });
-
-        res.json(result);
-    } catch (err) {
-        res.json(err);
-    }
-});
 //app configurations cors - cookies - json
 app.use(cors(corsoptions));
 app.use(cookieParser());
