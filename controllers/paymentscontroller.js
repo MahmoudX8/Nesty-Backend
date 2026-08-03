@@ -1,8 +1,5 @@
 const pool  = require("../config/dbconnect");
-const nodeMailer = require('nodemailer');
-const {Resend} = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
-
+const axios = require('axios');
 const createOrder = async(req,res)=>{
     try {
         const {cartproducts, cost} = req.body;
@@ -14,17 +11,29 @@ const createOrder = async(req,res)=>{
         const [admins] = await pool.query(`SELECT * FROM users WHERE member_role = ?`,["admin"]);
         if(admins.length == 0 , !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
-        await resend.emails.send({
-            from: "onboarding@resend.dev",
-            to: adminEmails,
-            subject:'New Order',
-            html:`
+        await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+        sender: {
+            name: "Nesty Website",
+            email: process.env.GMAIL_USER,
+        },
+        to: adminEmails,
+        subject: "New Order",
+        htmlContent: `
             <h1>You Got New Order</h1>
             <h3>Order id: ${orderId}</h3>
             <h3>Total cost: ${cost}$</h3>
             <p><a href='https://nesty-nwzp.vercel.app/order/${orderId}'>click for more details</a></p>
-            `
-        });
+        `,
+    },
+    {
+        headers: {
+            "api-key": process.env.BREVO_API_KEY,
+            "Content-Type": "application/json",
+        },
+    }
+);
         res.json({success:true, message: `order has been sent successfully` , orderId: orderId});
     } catch (error) {
         console.log(error);
