@@ -2,24 +2,26 @@ const jwt = require("jsonwebtoken");
 const pool  = require("../config/dbconnect");
 const bcrypt  = require("bcrypt");
 const nodeMailer = require("nodemailer");
+const {Resend} = require('resend');
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 const pendingEmails = new Map();
 const otp_ttl = 1000*60*2;
 const createOtp = ()=>{
     return Math.floor(100000+Math.random()*900000);
 }
-const transporter = nodeMailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth:{
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-    }
-});
-transporter.verify()
-    .then(() => console.log("SMTP connected"))
-    .catch(err => console.error(err));
+// const transporter = nodeMailer.createTransport({
+//     host: 'smtp.gmail.com',
+//     port: 465,
+//     secure: true,
+//     auth:{
+//         user: process.env.GMAIL_USER,
+//         pass: process.env.GMAIL_APP_PASSWORD
+//     }
+// });
+// transporter.verify()
+//     .then(() => console.log("SMTP connected"))
+//     .catch(err => console.error(err));
 const signup = async (req,res)=>{
     const { first_name , last_name , email , pass } = req.body;
     const ip = req.ip;
@@ -31,19 +33,29 @@ const signup = async (req,res)=>{
         const hashedPass = await bcrypt.hash(pass , 10);
         const otp = createOtp();
         pendingEmails.set(cleanEmail,{fname: first_name, lname: last_name, email:cleanEmail, pass: hashedPass , ip:ip, otp:otp , expires_at: Date.now()+otp_ttl});
-        await transporter.sendMail({
-            from:{
-                name: 'Nasty Website',
-                address: process.env.GMAIL_USER
-            },
+        await resend.emails.send({
+            from: process.env.GMAIL_USER,
             to: cleanEmail,
-            subject: 'OTP Verification',
+            subject: "OTP Verification",
             html: `
-            <h2>OTP Verification</h2>
-            <h1>${otp}</h1>
-            <p>Valid for just 2 minutes</p>
+                <h2>OTP Verification</h2>
+                <h1>${otp}</h1>
+                <p>Valid for just 2 minutes</p>
             `
-        })
+        });
+        // await transporter.sendMail({
+        //     from:{
+        //         name: 'Nasty Website',
+        //         address: process.env.GMAIL_USER
+        //     },
+        //     to: cleanEmail,
+        //     subject: 'OTP Verification',
+        //     html: `
+        //     <h2>OTP Verification</h2>
+        //     <h1>${otp}</h1>
+        //     <p>Valid for just 2 minutes</p>
+        //     `
+        // })
         res.json({success: true, email: cleanEmail ,message:`waiting for otp code`});
     } catch (error) {
         console.log("signup error: ",error);
@@ -157,19 +169,15 @@ const forgetPass = async(req,res)=>{
         const storedEmail = data.email;
         const otp = createOtp();
         pendingEmails.set(storedEmail,{id: data.id,email: storedEmail, member_role: data.member_role, otp: otp , expires_at:Date.now()+otp_ttl});
-        await transporter.sendMail({
-            from:{
-                name:'Nesty Website',
-                address:process.env.GMAIL_USER
-            },
+        await resend.emails.send({
+            from: process.env.GMAIL_USER,
             to: storedEmail,
             subject:'OTP Verification',
             html:`
             <h2>OTP Verification</h2>
             <h1>${otp}</h1>
             <p>Valid for just 2 minutes</p>
-            `
-        });
+            `});
         res.json({success:true, email: cleanEmail ,message:`Waiting for verification code`});
     } catch (error) {
         console.log(error);
