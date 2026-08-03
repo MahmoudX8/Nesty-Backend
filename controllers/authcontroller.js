@@ -16,6 +16,9 @@ const transporter = nodeMailer.createTransport({
         pass: process.env.GMAIL_APP_PASSWORD
     }
 });
+transporter.verify()
+    .then(() => console.log("SMTP connected"))
+    .catch(err => console.error(err));
 const signup = async (req,res)=>{
     const { first_name , last_name , email , pass } = req.body;
     const ip = req.ip;
