@@ -245,9 +245,9 @@ const logout = async (req,res)=>{
     const cookies = req.cookies;
     if(!cookies?.jwt) return res.status(401).json({message: `wrong cookie`,success: false});
     res.clearCookie("jwt",{
-        secure: process.env.NODE_ENV == "production",
+        secure: true,
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none',
         maxAge: 7*24*3600*1000
     });
     res.json({
