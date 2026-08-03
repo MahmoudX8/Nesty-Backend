@@ -51,7 +51,7 @@ const updateProfile = async(req,res)=>{
         const otp = createOtp();
         pendingData.set(email,{first_name,last_name,email,password: finalPass,otp:otp,expires_at:Date.now()+ttl});
         await resend.emails.send({
-            from: process.env.GMAIL_USER,
+            from: "onboarding@resend.dev",
             to: email,
             subject: 'OTP Verification',
             html:`
