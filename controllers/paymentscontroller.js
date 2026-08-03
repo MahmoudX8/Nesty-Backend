@@ -18,7 +18,7 @@ const createOrder = async(req,res)=>{
             name: "Nesty Website",
             email: process.env.GMAIL_USER,
         },
-        to: [adminEmails.map(email=>{email})],
+        to: adminEmails.map(email => { email }),
         subject: "New Order",
         htmlContent: `
             <h1>You Got New Order</h1>
