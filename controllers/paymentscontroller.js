@@ -8,8 +8,8 @@ const createOrder = async(req,res)=>{
         const orderId = orders.insertId;
         const values = cartproducts.map(prod => [orderId, user_id , prod.id, prod.quantity, prod.price]);
         const [payments] = await pool.query(`INSERT INTO payments(id,member_id,product_id,quantity,cost) VALUES ?`,[values]);
-        const [admins] = await pool.query(`SELECT * FROM users WHERE member_role = ?`,["admin"]);
-        if(admins.length == 0 , !admins) return res.json({success:false,message:`there is no admins`});
+        const [admins] = await pool.query(`SELECT id,email FROM users WHERE member_role = ?`,["admin"]);
+        if(admins.length == 0 || !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
         await axios.post(
     "https://api.brevo.com/v3/smtp/email",
