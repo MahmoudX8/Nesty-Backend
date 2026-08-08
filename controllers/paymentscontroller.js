@@ -12,10 +12,10 @@ const createOrder = async(req,res)=>{
     try {
         const {cartproducts, cost} = req.body;
         const user_id = req.user.id;
-        const [orders] = await pool.query(`INSERT INTO orders(member_id, total_cost) VALUES(?,?)`,[user_id,cost]);
-        const orderId = orders.insertId;
-        const values = cartproducts.map(prod => [orderId, user_id , prod.id, prod.quantity, prod.price]);
-        const [payments] = await pool.query(`INSERT INTO payments(id,member_id,product_id,quantity,cost) VALUES ?`,[values]);
+        // const [orders] = await pool.query(`INSERT INTO orders(member_id, total_cost) VALUES(?,?)`,[user_id,cost]);
+        // const orderId = orders.insertId;
+        // const values = cartproducts.map(prod => [orderId, user_id , prod.id, prod.quantity, prod.price]);
+        // const [payments] = await pool.query(`INSERT INTO payments(id,member_id,product_id,quantity,cost) VALUES ?`,[values]);
         const [admins] = await pool.query(`SELECT id,email FROM users WHERE member_role = ?`,["admin"]);
         if(admins.length == 0 || !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
@@ -28,9 +28,9 @@ const createOrder = async(req,res)=>{
             subject:'New Order',
             html:`
             <h1>You Got New Order</h1>
-            <h3>Order id: ${orderId}</h3>
+            <h3>Order id: </h3>
             <h3>Total cost: ${cost}$</h3>
-            <p><a href='https://nesty-nwzp.vercel.app/order/${orderId}'>click for more details</a></p>
+            <p><a href='https://nesty-nwzp.vercel.app/order/'>click for more details</a></p>
             `
         });
 //         await axios.post(
