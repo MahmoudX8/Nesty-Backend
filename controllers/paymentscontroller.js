@@ -2,7 +2,9 @@ const pool  = require("../config/dbconnect");
 const axios = require('axios');
 const nodeMailer = require('nodemailer');
 const transporter = nodeMailer.createTransport({
-    service:'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth:{
         user:process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD
