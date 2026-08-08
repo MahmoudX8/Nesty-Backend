@@ -1,5 +1,13 @@
 const pool  = require("../config/dbconnect");
 const axios = require('axios');
+const nodeMailer = require('nodemailer');
+const transporter = nodeMailer.createTransport({
+    service:'gmail',
+    auth:{
+        user:process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+    }
+});
 const createOrder = async(req,res)=>{
     try {
         const {cartproducts, cost} = req.body;
@@ -11,29 +19,43 @@ const createOrder = async(req,res)=>{
         const [admins] = await pool.query(`SELECT id,email FROM users WHERE member_role = ?`,["admin"]);
         if(admins.length == 0 || !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
-        await axios.post(
-    "https://api.brevo.com/v3/smtp/email",
-    {
-        sender: {
-            name: "Nesty Website",
-            email: process.env.GMAIL_USER,
-        },
-        to: adminEmails.map(email => ({ email })),
-        subject: "New Order",
-        htmlContent: `
+        await transporter.sendMail({
+            from:{
+                name:'Nesty Website',
+                address: process.env.GMAIL_USER
+            },
+            to: adminEmails,
+            subject:'New Order',
+            html:`
             <h1>You Got New Order</h1>
             <h3>Order id: ${orderId}</h3>
             <h3>Total cost: ${cost}$</h3>
             <p><a href='https://nesty-nwzp.vercel.app/order/${orderId}'>click for more details</a></p>
-        `,
-    },
-    {
-        headers: {
-            "api-key": process.env.BREVO_API_KEY,
-            "Content-Type": "application/json",
-        },
-    }
-);
+            `
+        });
+//         await axios.post(
+//     "https://api.brevo.com/v3/smtp/email",
+//     {
+//         sender: {
+//             name: "Nesty Website",
+//             email: process.env.GMAIL_USER,
+//         },
+//         to: adminEmails.map(email => ({ email })),
+//         subject: "New Order",
+//         htmlContent: `
+//             <h1>You Got New Order</h1>
+//             <h3>Order id: ${orderId}</h3>
+//             <h3>Total cost: ${cost}$</h3>
+//             <p><a href='https://nesty-nwzp.vercel.app/order/${orderId}'>click for more details</a></p>
+//         `,
+//     },
+//     {
+//         headers: {
+//             "api-key": process.env.BREVO_API_KEY,
+//             "Content-Type": "application/json",
+//         },
+//     }
+// );
         res.json({success:true, message: `order has been sent successfully` , orderId: orderId});
     } catch (error) {
         console.log(error);
