@@ -1,63 +1,41 @@
 const pool  = require("../config/dbconnect");
 const axios = require('axios');
-const nodeMailer = require('nodemailer');
-const transporter = nodeMailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth:{
-        user:process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-    }
-});
+
+const sendAdminOrderEmail = async (toEmail, orderId, cost) => {
+    return axios.post('https://api.emailjs.com/api/v1.0/email/send', {
+        service_id: process.env.EMAILJS_SERVICE_ID,
+        template_id: process.env.EMAILJS_TEMPLATE_ID,
+        user_id: process.env.EMAILJS_PUBLIC_KEY,
+        accessToken: process.env.EMAILJS_PRIVATE_KEY,
+        template_params: {
+            to_email: toEmail,
+            order_id: orderId,
+            cost: cost,
+            order_link: `https://nesty-store.vercel.app/order/${orderId}`,
+        },
+    });
+};
 const createOrder = async(req,res)=>{
     try {
         const {cartproducts, cost} = req.body;
         const user_id = req.user.id;
-        // const [orders] = await pool.query(`INSERT INTO orders(member_id, total_cost) VALUES(?,?)`,[user_id,cost]);
-        // const orderId = orders.insertId;
-        // const values = cartproducts.map(prod => [orderId, user_id , prod.id, prod.quantity, prod.price]);
-        // const [payments] = await pool.query(`INSERT INTO payments(id,member_id,product_id,quantity,cost) VALUES ?`,[values]);
+        const [orders] = await pool.query(`INSERT INTO orders(member_id, total_cost) VALUES(?,?)`,[user_id,cost]);
+        const orderId = orders.insertId;
+        const values = cartproducts.map(prod => [orderId, user_id , prod.id, prod.quantity, prod.price]);
+        const [payments] = await pool.query(`INSERT INTO payments(id,member_id,product_id,quantity,cost) VALUES ?`,[values]);
         const [admins] = await pool.query(`SELECT id,email FROM users WHERE member_role = ?`,["admin"]);
         if(admins.length == 0 || !admins) return res.json({success:false,message:`there is no admins`});
         const adminEmails = admins.map(admin => admin.email);
-        await transporter.sendMail({
-            from:{
-                name:'Nesty Website',
-                address: process.env.GMAIL_USER
-            },
-            to: adminEmails,
-            subject:'New Order',
-            html:`
-            <h1>You Got New Order</h1>
-            <h3>Order id: </h3>
-            <h3>Total cost: ${cost}$</h3>
-            <p><a href='https://nesty-nwzp.vercel.app/order/'>click for more details</a></p>
-            `
+        const results = await Promise.allSettled(
+            adminEmails.map(email => sendAdminOrderEmail(email, orderId, cost))
+        );
+        results.forEach((r, i) => {
+            if (r.status === 'rejected') {
+                console.error(`Failed to notify ${adminEmails[i]}:`, r.reason?.response?.data || r.reason?.message);
+            } else {
+                console.log(`Sent to ${adminEmails[i]}`);
+            }
         });
-//         await axios.post(
-//     "https://api.brevo.com/v3/smtp/email",
-//     {
-//         sender: {
-//             name: "Nesty Website",
-//             email: process.env.GMAIL_USER,
-//         },
-//         to: adminEmails.map(email => ({ email })),
-//         subject: "New Order",
-//         htmlContent: `
-//             <h1>You Got New Order</h1>
-//             <h3>Order id: ${orderId}</h3>
-//             <h3>Total cost: ${cost}$</h3>
-//             <p><a href='https://nesty-nwzp.vercel.app/order/${orderId}'>click for more details</a></p>
-//         `,
-//     },
-//     {
-//         headers: {
-//             "api-key": process.env.BREVO_API_KEY,
-//             "Content-Type": "application/json",
-//         },
-//     }
-// );
         res.json({success:true, message: `order has been sent successfully` , orderId: orderId});
     } catch (error) {
         console.log(error);
