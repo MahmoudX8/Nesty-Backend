@@ -1,6 +1,36 @@
 const pool  = require("../config/dbconnect");
 const axios = require('axios');
 
+//stripe payment gateway after user click on purchase after choosing products
+const createCheckoutSession = async (req, res) => {
+  try {
+    const { cartproducts } = req.body;
+
+    const line_items = cartproducts.map(item => ({
+      price_data: {
+        currency: 'usd',
+        product_data: { 
+          name: item.title,
+          metadata: { product_id: String(item.id) }, // your real DB product id
+         },
+        unit_amount: Math.round(item.price * 100), // cents
+      },
+      quantity: item.quantity,
+    }));
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items,
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/successful-payment?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/cart`,
+    });
+    res.json({ checkoutUrl: session.url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Payment session failed' });
+  }
+};
 const sendAdminOrderEmail = async (toEmail, orderId, cost) => {
     return axios.post('https://api.emailjs.com/api/v1.0/email/send', {
         service_id: process.env.EMAILJS_SERVICE_ID,
@@ -14,6 +44,57 @@ const sendAdminOrderEmail = async (toEmail, orderId, cost) => {
             order_link: `https://nesty-store.vercel.app/order/${orderId}`,
         },
     });
+};
+//check if user paid his order or not
+const verifyPayment = async (req, res) => {
+  try {
+    const { session_id } = req.query;
+    console.log('session id: ', session_id);
+    if (!session_id) return res.status(400).json({ success: false, message: 'No session id' });
+    
+    const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ['line_items', 'line_items.data.price.product'] });
+    if (session.payment_status !== 'paid') {
+      return res.json({ success: false, message: 'Payment not completed' });
+    }
+    const user_id = req.user.id;
+    const cost = session.amount_total / 100; // Stripe gives cents
+        const [orders] = await pool.query(`INSERT INTO orders(member_id, total_cost) VALUES(?,?)`,[user_id,cost]);
+        const orderId = orders.insertId;
+        const items = session.line_items.data;
+        const paymentValues = items.map(item => [
+          orderId,
+          user_id,
+          item.price.product.metadata.product_id, // your real DB product id
+          item.quantity,
+          item.price.unit_amount / 100,
+        ]);
+        const [payments] = await pool.query(
+          `INSERT INTO payments(id, member_id, product_id, quantity, cost) VALUES ?`,
+          [paymentValues]
+        );
+        const [admins] = await pool.query(`SELECT * FROM users WHERE member_role = ?`,["admin"]);
+        if(admins.length == 0 || !admins) return res.json({success:false,message:`there is no admins`});
+        const adminEmails = admins.map(admin => admin.email);
+        console.log("adminEmails:", adminEmails);
+        if (adminEmails.length === 0) {
+            return res.json({ success: false, message: "No valid admin emails found" });
+        }
+        // Loop — one email per admin
+        const results = await Promise.allSettled(
+            adminEmails.map(email => sendAdminOrderEmail(email, orderId, cost))
+        );
+        results.forEach((r, i) => {
+            if (r.status === 'rejected') {
+                console.error(`Failed to notify ${adminEmails[i]}:`, r.reason?.response?.data || r.reason?.message);
+            } else {
+                console.log(`Sent to ${adminEmails[i]}`);
+            }
+        });
+        res.json({success:true, message: `order has been sent successfully`});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Verification failed' });
+  }
 };
 const createOrder = async(req,res)=>{
     try {
@@ -78,5 +159,7 @@ module.exports = {
     createOrder,
     sendAdminOrders,
     getEachDetailedOrder,
-    confirmOrder
+    confirmOrder,
+    createCheckoutSession,
+    verifyPayment
 }
