@@ -1,6 +1,6 @@
 const pool  = require("../config/dbconnect");
 const axios = require('axios');
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 //stripe payment gateway after user click on purchase after choosing products
 const createCheckoutSession = async (req, res) => {
   try {
