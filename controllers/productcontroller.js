@@ -79,11 +79,6 @@ const addproduct = async (req,res) =>{
     } catch (error) {
         console.log("server error: ",error)
     }
-//     if(req.user.member_role == "admin"){
-// }
-//     else{
-//         return res.json({message: "you are not admin"});
-// }
 }
 const editproduct = async (req,res) =>{
     try {
