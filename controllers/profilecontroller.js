@@ -30,7 +30,7 @@ const updateProfile = async(req,res)=>{
     const {first_name , last_name , email , password} = req.body;
     try {
         if(!first_name && !last_name  && !password){
-            return res.json({success:false,message:'You should input at least one field'});
+            return res.json({success:false,message:'You should change at least one field'});
         }
         const [rows] = await pool.query('SELECT fname,lname,pass FROM users WHERE email=?',[email]);
         if(!rows || rows.length == 0 ) return res.json({success:false,message:'There is no data for that email'});
@@ -41,11 +41,8 @@ const updateProfile = async(req,res)=>{
         }else{
             matchPass = true;
         }
-        if(first_name == data.fname && last_name == data.lname && matchPass) return res.json({success: false,message: 'You do not change anything'});
+        if(first_name == data.fname && last_name == data.lname && matchPass) return res.json({success: false,message: 'You did not change anything'});
         const finalPass = password ? await bcrypt.hash(password,10) : data.pass;
-        if (first_name == data.fname && last_name == data.lname && matchPass){
-            return res.json({success:false,message:'You did not change anything'});
-        }
         const otp = createOtp();
         pendingData.set(email,{first_name,last_name,email,password: finalPass,otp:otp,expires_at:Date.now()+ttl});
         await axios.post(
