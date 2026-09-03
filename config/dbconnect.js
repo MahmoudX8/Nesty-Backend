@@ -11,7 +11,7 @@ const mysql = require('mysql2/promise');
 const pool = mysql.createPool({
   uri: process.env.DATABASE_URI,
   ssl: {
-    rejectUnauthorized: true
+    rejectUnauthorized: false
   }
 });
 module.exports = pool;
