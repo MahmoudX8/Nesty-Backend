@@ -8,6 +8,10 @@ const mysql = require('mysql2/promise');
 //   database: process.env.DB_NAME
 // });
 
-const pool = mysql.createPool(process.env.DATABASE_URI);
-
+const pool = mysql.createPool({
+  uri: process.env.DATABASE_URI,
+  ssl: {
+    rejectUnauthorized: true
+  }
+});
 module.exports = pool;
