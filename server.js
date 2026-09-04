@@ -5,7 +5,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const corsoptions = require("./config/corsoptions");
 const pool = require("./config/dbconnect");
-const PORT = 8000 || process.env.PORT;
+const PORT = process.env.PORT || 8000;
 const path = require('path');
 const jwt = require("jsonwebtoken");
 
@@ -32,9 +32,12 @@ app.use((req,res)=>{
     res.status(404).json("not found page");
 });
 //connect to DB & run server
+if (require.main === module) {
 pool.query('SELECT 1').then(()=>{
     console.log(`connected to db`);
     app.listen(PORT , ()=>{
         console.log(`server is running on port: ${PORT}`)
     })
 }).catch(err=>console.log(err));
+};
+module.exports = app;
